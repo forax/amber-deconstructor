@@ -36,8 +36,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <source>${java.class.version}</source>
+                    <target>${java.class.version}</target>
                     <compilerArgs>
                         <compilerArg>--enable-preview</compilerArg>
                     </compilerArgs>
