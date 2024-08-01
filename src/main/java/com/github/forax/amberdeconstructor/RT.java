@@ -14,11 +14,7 @@ import static java.lang.invoke.MethodType.methodType;
 import static org.objectweb.asm.Opcodes.*;
 
 public class RT {
-  private static final int ACC_VALUE = 0x0040;
-  private static final int ACC_IDENTITY = 0x0020;  // == ACC_SUPER
-
-  private static final int ACONST_INIT = 203; // visitTypeInsn
-  private static final int WITHFIELD = 204; // visitFieldInsn
+  private static final int ACC_IDENTITY = ACC_SUPER;  // == ACC_SUPER
 
   private static final boolean SUPPORT_VALUE_TYPE;
   static {
@@ -35,8 +31,9 @@ public class RT {
   private static Lookup generateCarrierClass(MethodType methodType) {
     var cv = new ClassWriter(0);
     var owner = "com/github/forax/amberdeconstructor/Carrier";
-    var classIdentity = SUPPORT_VALUE_TYPE? ACC_VALUE : ACC_IDENTITY;
-    cv.visit(V20, ACC_PUBLIC | ACC_FINAL | classIdentity,
+    var classIdentity = SUPPORT_VALUE_TYPE ? 0 : ACC_IDENTITY;
+    var minorVersion = SUPPORT_VALUE_TYPE ? V_PREVIEW : 0;
+    cv.visit(V23 | minorVersion, ACC_PUBLIC | ACC_FINAL | classIdentity,
         owner,
         null,
         "java/lang/Object",
@@ -46,64 +43,46 @@ public class RT {
     // fields
     for(var i = 0; i < parameterList.size(); i++) {
       var parameterType= parameterList.get(i);
-      var fv = cv.visitField(ACC_PRIVATE | ACC_FINAL, "field" + i, parameterType.descriptorString(), null, null);
+      var strict = SUPPORT_VALUE_TYPE ? ACC_STRICT : 0;
+      var fv = cv.visitField(ACC_PRIVATE | ACC_FINAL | ACC_STRICT, "field" + i, parameterType.descriptorString(), null, null);
       fv.visitEnd();
     }
 
     // constructor
-    if (!SUPPORT_VALUE_TYPE) {
-      var init = cv.visitMethod(ACC_PRIVATE, "<init>", methodType.toMethodDescriptorString(), null, null);
-      init.visitCode();
+    var init = cv.visitMethod(ACC_PRIVATE, "<init>", methodType.toMethodDescriptorString(), null, null);
+    init.visitCode();
+    var slot = 1;
+    for (var i = 0; i < parameterList.size(); i++) {
+      var parameterType = parameterList.get(i);
       init.visitVarInsn(ALOAD, 0);
-      init.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
-      var slot = 1;
-      for (var i = 0; i < parameterList.size(); i++) {
-        var parameterType = parameterList.get(i);
-        init.visitVarInsn(ALOAD, 0);
-        var type = Type.getType(parameterType);
-        init.visitVarInsn(type.getOpcode(ILOAD), slot);
-        slot += type.getSize();
-        init.visitFieldInsn(PUTFIELD, owner, "field" + i, parameterType.descriptorString());
-      }
-      init.visitInsn(RETURN);
-      init.visitMaxs(3, slot);
-      init.visitEnd();
+      var type = Type.getType(parameterType);
+      init.visitVarInsn(type.getOpcode(ILOAD), slot);
+      slot += type.getSize();
+      init.visitFieldInsn(PUTFIELD, owner, "field" + i, parameterType.descriptorString());
     }
+    init.visitVarInsn(ALOAD, 0);
+    init.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+    init.visitInsn(RETURN);
+    init.visitMaxs(3, slot);
+    init.visitEnd();
 
     // factory
-    if (!SUPPORT_VALUE_TYPE) {
-      var factory = cv.visitMethod(ACC_PUBLIC | ACC_STATIC, "factory", methodType.changeReturnType(Object.class).toMethodDescriptorString(), null, null);
-      factory.visitCode();
-      factory.visitTypeInsn(NEW, owner);
-      factory.visitInsn(DUP);
-      int slot = 0;
-      for (var i = 0; i < parameterList.size(); i++) {
-        var parameterType = parameterList.get(i);
-        var type = Type.getType(parameterType);
-        factory.visitVarInsn(type.getOpcode(ILOAD), slot);
-        slot += type.getSize();
-      }
-      factory.visitMethodInsn(
-          INVOKESPECIAL, owner, "<init>", methodType.toMethodDescriptorString(), false);
-      factory.visitInsn(ARETURN);
-      factory.visitMaxs(2 + slot, slot);
-      factory.visitEnd();
-    } else {
-      var factory = cv.visitMethod(ACC_PUBLIC | ACC_STATIC, "factory", methodType.changeReturnType(Object.class).toMethodDescriptorString(), null, null);
-      factory.visitCode();
-      factory.visitTypeInsn(ACONST_INIT, owner);
-      int slot = 0;
-      for (var i = 0; i < parameterList.size(); i++) {
-        var parameterType = parameterList.get(i);
-        var type = Type.getType(parameterType);
-        factory.visitVarInsn(type.getOpcode(ILOAD), slot);
-        factory.visitFieldInsn(WITHFIELD, owner, "field" + i, parameterType.descriptorString());
-        slot += type.getSize();
-      }
-      factory.visitInsn(ARETURN);
-      factory.visitMaxs(3, slot);
-      factory.visitEnd();
+    var factory = cv.visitMethod(ACC_PUBLIC | ACC_STATIC, "factory", methodType.changeReturnType(Object.class).toMethodDescriptorString(), null, null);
+    factory.visitCode();
+    factory.visitTypeInsn(NEW, owner);
+    factory.visitInsn(DUP);
+    slot = 0;
+    for (var i = 0; i < parameterList.size(); i++) {
+      var parameterType = parameterList.get(i);
+      var type = Type.getType(parameterType);
+      factory.visitVarInsn(type.getOpcode(ILOAD), slot);
+      slot += type.getSize();
     }
+    factory.visitMethodInsn(
+        INVOKESPECIAL, owner, "<init>", methodType.toMethodDescriptorString(), false);
+    factory.visitInsn(ARETURN);
+    factory.visitMaxs(2 + slot, slot);
+    factory.visitEnd();
 
     // accessors
     for(var i = 0; i < parameterList.size(); i++) {
