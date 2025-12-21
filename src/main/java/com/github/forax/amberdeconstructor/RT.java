@@ -33,7 +33,7 @@ public class RT {
     var owner = "com/github/forax/amberdeconstructor/Carrier";
     var classIdentity = SUPPORT_VALUE_TYPE ? 0 : ACC_IDENTITY;
     var minorVersion = SUPPORT_VALUE_TYPE ? V_PREVIEW : 0;
-    cv.visit(V23 | minorVersion, ACC_PUBLIC | ACC_FINAL | classIdentity,
+    cv.visit(V26 | minorVersion, ACC_PUBLIC | ACC_FINAL | classIdentity,
         owner,
         null,
         "java/lang/Object",

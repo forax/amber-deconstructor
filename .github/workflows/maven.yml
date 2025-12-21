@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        release: [ 'jep401ea2' ]
+        release: [ 'valhalla' ]
     name: Java ${{ matrix.release }}
     steps:
       - uses: actions/checkout@v3
