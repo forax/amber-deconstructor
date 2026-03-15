@@ -14,6 +14,7 @@ import static java.lang.invoke.MethodType.methodType;
 import static org.objectweb.asm.Opcodes.*;
 
 public class RT {
+  private static final int V27 = 0 << 16 | 71;   //FIXME when ASM 9.9.2 is released
   private static final int ACC_IDENTITY = ACC_SUPER;  // == ACC_SUPER
 
   private static final boolean SUPPORT_VALUE_TYPE;
@@ -33,7 +34,7 @@ public class RT {
     var owner = "com/github/forax/amberdeconstructor/Carrier";
     var classIdentity = SUPPORT_VALUE_TYPE ? 0 : ACC_IDENTITY;
     var minorVersion = SUPPORT_VALUE_TYPE ? V_PREVIEW : 0;
-    cv.visit(V26 | minorVersion, ACC_PUBLIC | ACC_FINAL | classIdentity,
+    cv.visit(V27 | minorVersion, ACC_PUBLIC | ACC_FINAL | classIdentity,
         owner,
         null,
         "java/lang/Object",
